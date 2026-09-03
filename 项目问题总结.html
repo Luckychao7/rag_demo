@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RAG 文档问答系统 - 问题排查总结（面试版）</title>
+<style>
+:root {
+  --bg: #0f1117;
+  --card: #1a1d27;
+  --border: #2a2d3a;
+  --text: #e0e0e0;
+  --text-dim: #8b8fa3;
+  --accent: #4fc3f7;
+  --red: #f06292;
+  --green: #66bb6a;
+  --orange: #ffa726;
+  --purple: #ab47bc;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
+  line-height: 1.7;
+  padding: 24px;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+h1 {
+  font-size: 26px;
+  text-align: center;
+  margin-bottom: 6px;
+  background: linear-gradient(135deg, var(--accent), var(--purple));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.subtitle {
+  text-align: center;
+  color: var(--text-dim);
+  font-size: 14px;
+  margin-bottom: 32px;
+}
+.summary-bar {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 32px;
+  flex-wrap: wrap;
+}
+.summary-card {
+  flex: 1;
+  min-width: 140px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px;
+  text-align: center;
+}
+.summary-card .num {
+  font-size: 28px;
+  font-weight: 700;
+}
+.summary-card .label {
+  font-size: 13px;
+  color: var(--text-dim);
+  margin-top: 4px;
+}
+.section {
+  margin-bottom: 36px;
+}
+.section-title {
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 16px;
+  padding-left: 12px;
+  border-left: 3px solid var(--accent);
+}
+.section-title.rag { border-color: var(--accent); }
+.section-title.ux { border-color: var(--green); }
+.section-title.eng { border-color: var(--orange); }
+.section-title.hall { border-color: var(--red); }
+.section-title.future { border-color: var(--purple); }
+.problem {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  margin-bottom: 16px;
+  overflow: hidden;
+}
+.problem-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.problem-header:hover { background: rgba(255,255,255,0.04); }
+.problem-tag {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.tag-fixed { background: rgba(102,187,106,0.15); color: var(--green); }
+.tag-remain { background: rgba(171,71,188,0.15); color: var(--purple); }
+.problem-title {
+  font-size: 15px;
+  font-weight: 600;
+  flex: 1;
+}
+.problem-arrow {
+  color: var(--text-dim);
+  transition: transform 0.2s;
+}
+.problem-body {
+  display: none;
+  padding: 0 16px 16px 16px;
+  border-top: 1px solid var(--border);
+}
+.problem-body.open { display: block; }
+.problem-arrow.open { transform: rotate(90deg); }
+.field {
+  margin-top: 12px;
+}
+.field-label {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+}
+.field-label.symptom { color: var(--red); }
+.field-label.root { color: var(--orange); }
+.field-label.fix { color: var(--green); }
+.field-label.takeaway { color: var(--accent); }
+.field-content {
+  font-size: 14px;
+  color: var(--text);
+  padding-left: 8px;
+}
+.field-content code {
+  background: rgba(79,195,247,0.1);
+  color: var(--accent);
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-size: 13px;
+}
+.interview-tip {
+  margin-top: 8px;
+  padding: 8px 12px;
+  background: rgba(79,195,247,0.06);
+  border-left: 2px solid var(--accent);
+  border-radius: 0 6px 6px 0;
+  font-size: 13px;
+  color: var(--text-dim);
+}
+.interview-tip strong { color: var(--accent); }
+hr { border: none; border-top: 1px solid var(--border); margin: 8px 0; }
+.footer {
+  text-align: center;
+  color: var(--text-dim);
+  font-size: 13px;
+  margin-top: 32px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+</style>
+</head>
+<body>
+
+<h1>RAG 文档问答系统 - 问题排查总结</h1>
+<p class="subtitle">面试讲述版 | 本地化部署 | Ollama + FAISS + BGE + Streamlit | 2026-09-03</p>
+
+<div class="summary-bar">
+  <div class="summary-card"><div class="num" style="color:var(--green)">11</div><div class="label">已修复问题</div></div>
+  <div class="summary-card"><div class="num" style="color:var(--purple)">9</div><div class="label">待改进方向</div></div>
+  <div class="summary-card"><div class="num" style="color:var(--accent)">4</div><div class="label">涉及模块数</div></div>
+  <div class="summary-card"><div class="num" style="color:var(--orange)">7B</div><div class="label">LLM 参数量</div></div>
+</div>
+
+<!-- ==================== 检索质量 ==================== -->
+<div class="section">
+<div class="section-title rag">一、检索质量问题（RAG 核心链路）</div>
+
+<div class="problem">
+<div class="problem-header" onclick="toggle(this)">
+<span class="problem-tag tag-fixed">已修复</span>
+<span class="problem-title">#1 分块过小导致项目描述被切碎</span>
+<span class="problem-arrow">▶</span>
+</div>
+<div class="problem-body">
+<div class="field"><div class="field-label symptom">现象</div><div class="field-content">问"李凯朝有几个项目"，LLM 列出了 10 个，实际只有 3 个。多个条目描述的是同一个项目的不同侧面。</div></div>
+<div class="field"><div class="field-label root">根因</div><div class="field-content"><code>CHUNK_SIZE=500</code> 字符，简历中一个项目描述通常 300-800 字，500 字直接把项目切成两半。LLM 拿到的是残缺碎片，只能把碎片里看到的项目名全列出来。</div></div>
+<div class="field"><div class="field-label fix">方案</div><div class="field-content"><code>config.py</code> 中 <code>CHUNK_SIZE 500→1000</code>，<code>CHUNK_OVERLAP 80→150</code>。同时系统提示加规则 11："如果多个参考片段描述的是同一项目/实体的不同方面，合并为一个条目，不要重复计数"。</div></div>
+<div class="field"><div class="field-label takeaway">收获</div><div class="field-content">分块策略直接决定 RAG 上限。chunk 太小 → 检索碎片化 → LLM 无法理解全局语义；chunk 太大 → 向量稀释 → 检索精度下降。需要根据文档类型调参。</div></div>
+<div class="interview-tip"><strong>面试话术：</strong>"我一开始用 500 字分块，发现 LLM 把同一个项目的不同碎片当成多个项目。调到 1000 字后，一个完整项目描述基本在一个块里，回答质量明显提升。这让我意识到分块不是越细越好，要匹配文档的语义结构。"</div>
+</div>
+</div>
+
+<div class="problem">
+<div class="problem-header" onclick="toggle(this)">
+<span class="problem-tag tag-fixed">已修复</span>
+<span class="problem-title">#2 相似度阈值过高过滤掉相关结果</span>
+<span class="problem-arrow">▶</span>
+</div>
+<div class="problem-body">
+<div class="field"><div class="field-label symptom">现象</div><div class="field-content">选中了文档，问"文档中的人名字叫什么"，系统回答"无法找到相关信息"。终端日志显示搜索了文档但命中 0 条。</div></div>
+<div class="field"><div class="field-label root">根因</div><div class="field-content"><code>SIMILARITY_THRESHOLD=0.35</code>。"人名字叫什么"和简历里的"李凯朝"语义距离较远，BGE 算出来的相似度在 0.25-0.35 之间，刚好被阈值卡掉。</div></div>
+<div class="field"><div class="field-label fix">方案</div><div class="field-content">阈值降至 <code>0.25</code>。同时在 <code>vector_store.py</code> 的 <code>search()</code> 方法加调试日志，打印每个块的 score 和阈值，方便排查。</div></div>
+<div class="field"><div class="field-label takeaway">收获</div><div class="field-content">阈值是精度和召回的权衡。太高 → 漏检（用户觉得系统没用）；太低 → 噪声多（LLM 被无关内容干扰）。BGE-small-zh 的相似度分布通常在 0.2-0.6，0.25 是比较合理的下限。</div></div>
+<div class="interview-tip"><strong>面试话术：</strong>"用户反馈选中了文档却搜不到，我加了检索日志发现 score 在 0.28 左右，被 0.35 阈值过滤了。降到 0.25 后命中了。这个 bug 教会我 RAG 系统一定要有可观测性——不加日志根本不知道是检索环节还是生成环节出了问题。"</div>
+</div>
+</div>
+
+<div class="problem">
+<div class="problem-header" onclick="toggle(this)">
+<span class="problem-tag tag-remain">待改进</span>
+<span class="problem-title">#3 元问题走了不必要的 RAG 检索</span>
+<span class="problem-arrow">▶</span>
+</div>
+<div class="problem-body">
+<div class="field"><div class="field-label symptom">现象</div><div class="field-content">用户问"你可以搜索几个文档"，系统去向量库检索"搜索文档"相关内容，返回了不相关的文本块，然后 LLM 基于这些噪声回答，容易出错。</div></div>
+<div class="field"><div class="field-label root">根因</div><div class="field-content">没有意图分类模块。所有问题都走 assess_question → search → generate 完整 RAG 链路。但元问题（关于系统自身状态的问题）不需要检索文档，应该直接从系统元数据回答。</div></div>
+<div class="field"><div class="field-label fix">方案</div><div class="field-content">规划中：在 <code>assess_question</code> 前加一步轻量意图分类，识别"问文档数量""问系统功能"等元问题，直接返回系统状态，跳过 RAG。</div></div>
+<div class="interview-tip"><strong>面试话术：</strong>"我发现一个架构问题：用户问'你能搜几个文档'时，系统居然去向量库搜索'文档'这个词，返回了一堆无关内容。这暴露了缺少意图分类的问题——不是所有问题都需要走 RAG，元问题应该直接从系统状态回答。"</div>
+</div>
+</div>
+
+<div class="problem">
+<div class="problem-header" onclick="toggle(this)">
+<span class="problem-tag tag-remain">待改进</span>
+<span class="problem-title">#4 无检索结果重排序（Re-ranking）</span>
+<span class="problem-arrow">▶</span>
+</div>
+<div class="problem-body">
+<div class="field"><div class="field-label symptom">现象</div><div class="field-content">检索返回 Top-5 个文本块，按 BGE 向量相似度排序。但向量相似度高 ≠ 对回答有帮助，有时最相关的块排在第 3-4 位。</div></div>
+<div class="field"><div class="field-label root">根因</div><div class="field-content">只有单阶段检索（Embedding 召回），没有第二阶段重排序。召回阶段用小模型（BGE-small）保速度，重排阶段应该用更强的模型精排。</div></div>
+<div class="field"><div class="field-label fix">方案</div><div class="field-content">规划中：引入 BGE-reranker-base 做二阶段重排序。先召回 Top-20，再用 reranker 精排取 Top-5。</div></div>
+<div class="interview-tip"><strong>面试话术：</strong>"当前只有单阶段检索，召回什么就给 LLM 什么。生产级 RAG 通常用两阶段：先用轻量 embedding 召回 Top-20，再用 cross-encoder reranker 精排 Top-5。这是我下一步的优化方向。"</div>
+</div>
+</div>
+
+</div>
+
+<!-- ==================== LLM 幻觉 ==================== -->
+<div class="section">
+<div class="section-title hall">二、LLM 幻觉与提示词工程</div>
+
+<div class="problem">
+<div class="problem-header" onclick="toggle(this)">
+<span class="problem-tag tag-fixed">已修复</span>
+<span class="problem-title">#5 LLM 编造文档数量（3个说成4个）</span>
+<span class="problem-arrow">▶</span>
+</div>
+<div class="problem-body">
+<div class="field"><div class="field-label symptom">现象</div><div class="field-content">后台日志显示搜索了 3 个文档，但 LLM 回答用户"可以检索 4 个文档"。之前还说过 5 个。数字每次都不一样。</div></div>
+<div class="field"><div class="field-label root">根因</div><div class="field-content">系统提示只列了文档名（"- 李凯朝简历.pdf\n- 半导体产品手册.pdf\n- 国模破限.txt"），让 7B 模型自己数列表条目。模型一边要数数，一边要处理 5 个检索返回的文本块，结果数错了。而且 RAG 上下文的文本块也含"文档"字样，干扰计数。</div></div>
+<div class="field"><div class="field-label fix">方案</div><div class="field-content"><code>generate_answer()</code> 中构建元数据时直接写出总数：<code>"共3个文档，71个文本块：\n- 李凯朝简历.pdf（2个文本块）..."</code>。LLM 不需要数数，读数字就行。同时系统提示加规则 8 和 9：区分文档数 vs 文本块数；不确定就说"我不知道"。</div></div>
+<div class="field"><div class="field-label takeaway">收获</div><div class="field-content">7B 小模型不擅长数数和推理。能直接给数字就不要让模型自己算。提示词工程的核心原则：减少模型的认知负担，把结论写清楚，让模型做阅读理解而不是做推理。</div></div>
+<div class="interview-tip"><strong>面试话术：</strong>"LLM 把 3 个文档说成 4 个，根因是提示词只列了文档名没写总数，7B 模型自己数列表数错了。我改成直接写'共3个文档'，模型不用数，读就行。这让我深刻理解了提示词工程的核心：不要让小模型做推理，要做阅读理解。"</div>
+</div>
+</div>
+
+<div class="problem">
+<div class="problem-header" onclick="toggle(this)">
+<span class="problem-tag tag-fixed">已修复</span>
+<span class="problem-title">#6 LLM 把文本块当文档数回答</span>
+<span class="problem-arrow">▶</span>
+</div>
+<div class="problem-body">
+<div class="field"><div class="field-label symptom">现象</div><div class="field-content">问"能搜索几个文档"，LLM 回答 5（实际 2 个文档，但被分成 8 个文本块）。LLM 把文本块数当成了文档数。</div></div>
+<div class="field"><div class="field-label root">根因</div><div class="field-content">系统提示没有区分"文档数"和"文本块数"的概念，也没有注入真实的文档列表。LLM 只能从检索结果的文本块数量推断，自然推断错误。</div></div>
+<div class="field"><div class="field-label fix">方案</div><div class="field-content">系统提示加规则 8："严格区分文档数（上传的文件数）和文本块数（分块后的片段数）"；并在 <code>generate_answer</code> 中调用 <code>list_documents()</code> 获取真实文档列表注入系统提示。</div></div>
+<div class="interview-tip"><strong>面试话术：</strong>"用户问'有几个文档'，LLM 回答 5，实际只有 2 个文档 8 个文本块。LLM 把文本块当文档数了。我在系统提示里注入了真实文档列表，并加了规则区分文档数和文本块数。这本质上是给 LLM 提供它没有的系统状态信息。"</div>
+</div>
+</div>
+
+<div class="problem">
+<div class="problem-header" onclick="toggle(this)">
+<span class="problem-tag tag-fixed">已修复</span>
+<span class="problem-title">#7 项目重复列举（同一项目拆成多个条目）</span>
+<span class="problem-arrow">▶</span>
+</div>
+<div class="problem-body">
+<div class="field"><div class="field-label symptom">现象</div><div class="field-content">问"李凯朝参与了哪些项目"，LLM 列出了 10 个项目，但其中 5 个其实描述的是同一个图 RAG 项目的不同侧面（技术栈、功能、部署方式等）。</div></div>
+<div class="field"><div class="field-label root">根因</div><div class="field-content">提示词没有教 LLM 去重合并。多个文本块从不同角度描述同一个项目，7B 模型判断不了"这是同一个东西"，全列出来了。</div></div>
+<div class="field"><div class="field-label fix">方案</div><div class="field-content">系统提示和 RAG 模板各加一条规则："如果多个参考片段描述的是同一个项目/实体/主题的不同方面，合并为一个条目，不要重复计数或重复列举"。</div></div>
+<div class="interview-tip"><strong>面试话术：</strong>"LLM 把同一个图 RAG 项目的不同描述当成了 5 个独立项目。根因是提示词没有去重合并的指令，7B 模型自己判断不了。加了一条规则后好了。这说明小模型需要明确的去重策略，不能指望它自己推断。"</div>
+</div>
+</div>
+
+<div class="problem">
+<div class="problem-header" onclick="toggle(this)">
+<span class="problem-tag tag-remain">待改进</span>
+<span class="problem-title">#8 assess_question 中问题重复发送</span>
+<span class="problem-arrow">▶</span>
+</div>
+<div class="problem-body">
+<div class="field"><div class="field-label symptom">现象</div><div class="field-content"><code>assess_question</code> 构建 messages 时，问题同时出现在 system prompt 的 <code>{question}</code> 占位符和 user message 中，问题被发送了两次。</div></div>
+<div class="field"><div class="field-label root">根因</div><div class="field-content">设计 ANALYZE_PROMPT 时把问题嵌入 system prompt 做格式化，同时又作为 user message 发送。这浪费了 token 也可能让 LLM 困惑。</div></div>
+<div class="field"><div class="field-label fix">方案</div><div class="field-content">规划中：去掉 user message 中的问题，只在 system prompt 中出现。或反过来，system prompt 只放规则，问题放 user message。</div></div>
+</div>
+</div>
+
+</div>
+
+<!-- ==================== 用户体验 ==================== -->
+<div class="section">
+<div class="section-title ux">三、用户体验问题</div>
+
+<div class="problem">
+<div class="problem-header" onclick="toggle(this)">
+<span class="problem-tag tag-fixed">已修复</span>
+<span class="problem-title">#9 对话不自动滚动到底部</span>
+<span class="problem-arrow">▶</span>
+</div>
+<div class="problem-body">
+<div class="field"><div class="field-label symptom">现象</div><div class="field-content">发消息后页面停在顶部，需要手动往下拉才能看到回答。加载历史对话也是同样问题。</div></div>
+<div class="field"><div class="field-label root">根因</div><div class="field-content">Streamlit 默认从顶部渲染，没有自动滚动机制。</div></div>
+<div class="field"><div class="field-label fix">方案</div><div class="field-content">在 session_state 加 <code>scroll_to_bottom</code> 标记，在发消息、加载对话、新建对话时置为 True，然后在页面渲染末尾注入 JavaScript：<code>window.parent.document.querySelector('section.main').scrollTop = el.scrollHeight</code>。</div></div>
+<div class="interview-tip"><strong>面试话术：</strong>"Streamlit 没有自动滚动 API，我用 components.html 注入了一段 JavaScript 来操控 DOM。这是个 workaround，但解决了实际问题。面试官可能会问 Streamlit 的局限，这就是一个很好的例子。"</div>
+</div>
+</div>
+
+<div class="problem">
+<div class="problem-header" onclick="toggle(this)">
+<span class="problem-tag tag-fixed">已修复</span>
+<span class="problem-title">#10 历史对话列表无排序</span>
+<span class="problem-arrow">▶</span>
+</div>
+<div class="problem-body">
+<div class="field"><div class="field-label symptom">现象</div><div class="field-content">侧边栏历史对话列表随机顺序，最新的对话不在最前面，要翻找。</div></div>
+<div class="field"><div class="field-label root">根因</div><div class="field-content"><code>list_histories()</code> 用 <code>os.listdir()</code> 遍历文件，操作系统返回的顺序不确定。</div></div>
+<div class="field"><div class="field-label fix">方案</div><div class="field-content">读取每个历史文件的 <code>os.path.getmtime()</code>，按修改时间降序排序。用临时字段 <code>_mtime</code> 排序后删除。</div></div>
+</div>
+</div>
+
+<div class="problem">
+<div class="problem-header" onclick="toggle(this)">
+<span class="problem-tag tag-fixed">已修复</span>
+<span class="problem-title">#11 Token 用量显示不准确</span>
+<span class="problem-arrow">▶</span>
+</div>
+<div class="problem-body">
+<div class="field"><div class="field-label symptom">现象</div><div class="field-content">UI 显示 token 用量是公式估算的（中文 1 字 = 1.5 token），但 qwen2 的 tokenizer 对中文更高效（约 1 字 = 1 token），导致显示偏高 50%。每次请求的数字看起来都差不多，像写死的。</div></div>
+<div class="field"><div class="field-label root">根因</div><div class="field-content">用了自写的 <code>_estimate_tokens()</code> 估算公式，没有用 Ollama API 返回的真实 token 计数。</div></div>
+<div class="field"><div class="field-label fix">方案</div><div class="field-content"><code>llm_service.chat()</code> 的响应里有 <code>prompt_eval_count</code>（真实输入 token）和 <code>eval_count</code>（真实输出 token）。改为用 Ollama 返回的真实计数替换预估值。</div></div>
+<div class="field"><div class="field-label takeaway">收获</div><div class="field-content">不要自己估算能用 API 拿到的数据。Ollama 的 /api/chat 响应自带 token 计数，之前直接丢弃了。</div></div>
+<div class="interview-tip"><strong>面试话术：</strong>"token 用量显示一直偏高，因为我是用公式估算的（中文 1.5 token/字），但 qwen2 的 tokenizer 对中文更高效。后来发现 Ollama API 响应里自带 prompt_eval_count，直接用真实数据替换估算就行了。教训：不要自己估算能用 API 拿到的数据。"</div>
+</div>
+</div>
+
+<div class="problem">
+<div class="problem-header" onclick="toggle(this)">
+<span class="problem-tag tag-remain">待改进</span>
+<span class="problem-title">#12 对话历史只按消息数截断，无 token 级截断</span>
+<span class="problem-arrow">▶</span>
+</div>
+<div class="problem-body">
+<div class="field"><div class="field-label symptom">现象</div><div class="field-content"><code>assess_question</code> 和 <code>generate_answer</code> 都用 <code>chat_history[-6:]</code> 截断历史。但如果每条消息很长（比如 RAG 返回的长回答），6 条消息可能就超了 8192 的上下文窗口。</div></div>
+<div class="field"><div class="field-label root">根因</div><div class="field-content">只按消息条数限制，没有按 token 总量限制。</div></div>
+<div class="field"><div class="field-label fix">方案</div><div class="field-content">规划中：从最新消息向前累加，一旦总 token 超过窗口的 50%，停止加入更早的消息。可以用 tiktoken 或直接调用 Ollama 的 token 计数 API。</div></div>
+<div class="interview-tip"><strong>面试话术：</strong>"当前按消息数（6条）截断历史，但没考虑消息长度。如果每条 RAG 回答 1000 字，6 条就 6000 字了，加上系统提示和检索结果可能超窗口。生产系统应该按 token 总量截断，从最新往前累加，超了就停。"</div>
+</div>
+</div>
+
+</div>
+
+<!-- ==================== 工程质量 ==================== -->
+<div class="section">
+<div class="section-title eng">四、工程质量问题</div>
+
+<div class="problem">
+<div class="problem-header" onclick="toggle(this)">
+<span class="problem-tag tag-fixed">已修复</span>
+<span class="problem-title">#13 重复上传文档无查重机制</span>
+<span class="problem-arrow">▶</span>
+</div>
+<div class="problem-body">
+<div class="field"><div class="field-label symptom">现象</div><div class="field-content">上传同名文档会创建新的 doc_id，旧索引残留。向量库中同一文档存在多份，检索结果重复。</div></div>
+<div class="field"><div class="field-label root">根因</div><div class="field-content"><code>_process_uploads()</code> 没有检查同名文档是否已索引，直接用时间戳生成新 doc_id。</div></div>
+<div class="field"><div class="field-label fix">方案</div><div class="field-content">上传前调用 <code>list_documents()</code> 扫描已索引文档列表，发现同名则先删旧索引再建新的，并提示用户 <code>⚠️ 检测到同名文档，已删除旧索引</code>。</div></div>
+</div>
+</div>
+
+<div class="problem">
+<div class="problem-header" onclick="toggle(this)">
+<span class="problem-tag tag-fixed">已修复</span>
+<span class="problem-title">#14 transformers 警告刷屏</span>
+<span class="problem-arrow">▶</span>
+</div>
+<div class="problem-body">
+<div class="field"><div class="field-label symptom">现象</div><div class="field-content">每次启动加载 embedding 模型，终端输出 12+ 条 <code>[ERROR] xxx is part of xxxKwargs, but not documented</code> 警告。这些是 transformers 库内部的 docstring 检查，不影响功能，但淹没了真正有用的日志。</div></div>
+<div class="field"><div class="field-label root">根因</div><div class="field-content">transformers 库在加载模型时会检查 ImageProcessor 子类的 docstring 完整性。之前用 <code>logging.getLogger('transformers').setLevel(CRITICAL)</code> 只设了父 logger 级别，但子 logger 在模型加载时重新配置，覆盖了设置。</div></div>
+<div class="field"><div class="field-label fix">方案</div><div class="field-content">改用 <code>logging.disable(logging.CRITICAL)</code> —— Python 全局日志开关，无视任何子 logger 的独立配置。在模块导入前和模型加载后各调用一次，双重保险。同时设了 <code>os.environ['TRANSFORMERS_VERBOSITY'] = 'critical'</code>。</div></div>
+<div class="interview-tip"><strong>面试话术：</strong>"transformers 库的 docstring 检查警告刷屏，用 getLogger().setLevel 没用，因为子 logger 会重新配置。最后用 logging.disable() 全局压制才解决。这让我理解了 Python logging 的继承机制：子 logger 不一定继承父 logger 的级别。"</div>
+</div>
+</div>
+
+<div class="problem">
+<div class="problem-header" onclick="toggle(this)">
+<span class="problem-tag tag-fixed">已修复</span>
+<span class="problem-title">#15 UploadedFile API 误用</span>
+<span class="problem-arrow">▶</span>
+</div>
+<div class="problem-body">
+<div class="field"><div class="field-label symptom">现象</div><div class="field-content">上传文件时报错 <code>AttributeError: 'UploadedFile' object has no attribute 'getBuffer'</code>。</div></div>
+<div class="field"><div class="field-label root">根因</div><div class="field-content">Streamlit 的 <code>UploadedFile</code> 没有 <code>getBuffer()</code> 方法。</div></div>
+<div class="field"><div class="field-label fix">方案</div><div class="field-content">改为 <code>uf.getvalue()</code>，这是 <code>UploadedFile</code> 继承自 <code>BytesIO</code> 的标准方法。</div></div>
+</div>
+</div>
+
+<div class="problem">
+<div class="problem-header" onclick="toggle(this)">
+<span class="problem-tag tag-fixed">已修复</span>
+<span class="problem-title">#16 死代码残留（full_qa_flow）</span>
+<span class="problem-arrow">▶</span>
+</div>
+<div class="problem-body">
+<div class="field"><div class="field-label symptom">现象</div><div class="field-content"><code>rag_engine.py</code> 中有 <code>full_qa_flow()</code> 函数，但 app.py 的 <code>_handle_user_input + _do_rag</code> 已经覆盖了完整流程且含 try/except 错误降级。<code>full_qa_flow</code> 从未被调用。</div></div>
+<div class="field"><div class="field-label root">根因</div><div class="field-content">重构时创建了新流程但没有删除旧函数。</div></div>
+<div class="field"><div class="field-label fix">方案</div><div class="field-content">删除 <code>full_qa_flow()</code> 函数。</div></div>
+</div>
+</div>
+
+<div class="problem">
+<div class="problem-header" onclick="toggle(this)">
+<span class="problem-tag tag-remain">待改进</span>
+<span class="problem-title">#17 PDF 解析不支持扫描件</span>
+<span class="problem-arrow">▶</span>
+</div>
+<div class="problem-body">
+<div class="field"><div class="field-label symptom">现象</div><div class="field-content">上传图片型 PDF（扫描件），<code>pdfplumber</code> 提取不到任何文本，分块结果为空。</div></div>
+<div class="field"><div class="field-label root">根因</div><div class="field-content"><code>pdfplumber</code> 只能提取文本型 PDF，不支持 OCR。图片型 PDF 需要先 OCR 再提取文本。</div></div>
+<div class="field"><div class="field-label fix">方案</div><div class="field-content">规划中：检测到提取文本为空时，调用 <code>paddleocr</code> 或 <code>tesseract</code> 做 OCR。或者用 <code>PyMuPDF</code> 先渲染页面为图片再 OCR。</div></div>
+<div class="interview-tip"><strong>面试话术：</strong>"当前用 pdfplumber 只能处理文本型 PDF，扫描件不行。如果用户上传了扫描件，提取文本为空。生产系统应该加一个 fallback：文本提取失败时走 OCR。这个场景在真实业务中很常见——很多合同、报告都是扫描件。"</div>
+</div>
+</div>
+
+<div class="problem">
+<div class="problem-header" onclick="toggle(this)">
+<span class="problem-tag tag-remain">待改进</span>
+<span class="problem-title">#18 list_histories 每次加载所有文件全文</span>
+<span class="problem-arrow">▶</span>
+</div>
+<div class="problem-body">
+<div class="field"><div class="field-label symptom">现象</div><div class="field-content">侧边栏每次渲染都调用 <code>list_histories()</code>，该函数遍历所有历史 JSON 文件并完整加载每个文件（<code>json.load</code>），只为了取第一条用户消息做标题和获取修改时间。</div></div>
+<div class="field"><div class="field-label root">根因</div><div class="field-content">标题存在 JSON 文件内部，要读文件才能拿到标题。没有单独的元数据索引。</div></div>
+<div class="field"><div class="field-label fix">方案</div><div class="field-content">规划中：维护一个 <code>history_index.json</code> 索引文件，存储 {conv_id: title, mtime} 映射。列表时只读索引文件，不读对话内容。</div></div>
+</div>
+</div>
+
+<div class="problem">
+<div class="problem-header" onclick="toggle(this)">
+<span class="problem-tag tag-remain">待改进</span>
+<span class="problem-title">#19 调试日志硬编码，无开关控制</span>
+<span class="problem-arrow">▶</span>
+</div>
+<div class="problem-body">
+<div class="field"><div class="field-label symptom">现象</div><div class="field-content"><code>vector_store.py</code> 的 <code>search()</code> 和 <code>rag_engine.py</code> 的 <code>assess_question()</code> 中有 <code>print()</code> 调试日志，无法关闭。生产环境会刷屏。</div></div>
+<div class="field"><div class="field-label root">根因</div><div class="field-content">开发时加的 print 没有做配置化。</div></div>
+<div class="field"><div class="field-label fix">方案</div><div class="field-content">规划中：改为 <code>logging</code> 模块，通过 <code>config.LOG_LEVEL</code> 控制开关。</div></div>
+</div>
+</div>
+
+<div class="problem">
+<div class="problem-header" onclick="toggle(this)">
+<span class="problem-tag tag-remain">待改进</span>
+<span class="problem-title">#20 SYSTEM_PROMPT 和 RAG_PROMPT 规则重叠</span>
+<span class="problem-arrow">▶</span>
+</div>
+<div class="problem-body">
+<div class="field"><div class="field-label symptom">现象</div><div class="field-content">系统提示和 RAG 模板都有"不要编造信息""直接给出答案""问题无关就说超出范围"等重复规则，浪费 token。</div></div>
+<div class="field"><div class="field-label root">根因</div><div class="field-content">两个提示词独立维护，没有去重。</div></div>
+<div class="field"><div class="field-label fix">方案</div><div class="field-content">规划中：通用规则只放 SYSTEM_PROMPT，RAG_PROMPT 只放检索相关的规则（引用格式、去重合并）。</div></div>
+</div>
+</div>
+
+</div>
+
+<!-- ==================== 架构反思 ==================== -->
+<div class="section">
+<div class="section-title future">五、架构反思（面试加分项）</div>
+
+<div class="problem">
+<div class="problem-header" onclick="toggle(this)">
+<span class="problem-tag tag-remain">架构反思</span>
+<span class="problem-title">为什么选 7B 模型 + 本地部署？</span>
+<span class="problem-arrow">▶</span>
+</div>
+<div class="problem-body">
+<div class="field-content">
+<p><strong>选型理由：</strong>RTX 3060 6GB 显存，只能跑 7B Q4 量化的模型。<code>qwen2:7b-instruct-q4_K_M</code> 是中文能力最强的 7B 模型之一，4-bit 量化后约 4.2GB 显存占用，留 2GB 给 KV cache 和推理缓冲。</p>
+<hr>
+<p><strong>代价：</strong>7B 模型的能力上限明显——数数会错、复杂推理不行、长文本理解弱。需要更精细的提示词工程来弥补。</p>
+<hr>
+<p><strong>面试话术：</strong>"我选 7B 是受限于 6GB 显存。7B 模型能力有限，所以我花了很多时间在提示词工程上——直接给数字不让它数、加去重规则、明确区分文档数和文本块数。如果换 14B 或 32B 模型，很多问题会自然消失，但需要更好的硬件。这是一个 trade-off 的实例。"</p>
+</div>
+</div>
+</div>
+
+<div class="problem">
+<div class="problem-header" onclick="toggle(this)">
+<span class="problem-tag tag-remain">架构反思</span>
+<span class="problem-title">这个 demo 的技术栈选型逻辑</span>
+<span class="problem-arrow">▶</span>
+</div>
+<div class="problem-body">
+<div class="field-content">
+<table style="width:100%; border-collapse:collapse; font-size:14px;">
+<tr style="border-bottom:1px solid var(--border);">
+<td style="padding:8px; font-weight:700; color:var(--accent); width:25%;">Embedding: BGE-small-zh</td>
+<td style="padding:8px;">512 维，模型仅 100MB，CPU 也能跑。中文效果优于 OpenAI ada-002。够用且免费。</td>
+</tr>
+<tr style="border-bottom:1px solid var(--border);">
+<td style="padding:8px; font-weight:700; color:var(--accent);">向量库: FAISS IndexFlatIP</td>
+<td style="padding:8px;">纯内存索引，每个文档独立存储。简单直接，无需额外服务（Milvus/Qdrant 要起 Docker）。demo 阶段够用。</td>
+</tr>
+<tr style="border-bottom:1px solid var(--border);">
+<td style="padding:8px; font-weight:700; color:var(--accent);">LLM: Ollama + qwen2:7b</td>
+<td style="padding:8px;">Ollama 提供 REST API，本地部署零成本零延迟。qwen2 中文能力强于 llama3。</td>
+</tr>
+<tr style="border-bottom:1px solid var(--border);">
+<td style="padding:8px; font-weight:700; color:var(--accent);">UI: Streamlit</td>
+<td style="padding:8px;">Python 原生，无需写前端。缺点是没有自动滚动、组件有限。但 demo 阶段够用。</td>
+</tr>
+</table>
+<p style="margin-top:12px;"><strong>面试话术：</strong>"技术选型的核心原则是'够用就好'。FAISS 不用起 Docker，BGE-small 100MB CPU 也能跑，Ollama 一行命令启动。如果要做生产级，FAISS 换 Milvus（支持持久化和分布式），BGE-small 换 BGE-large，7B 换 14B+，Streamlit 换 Vue+FastAPI。但 demo 阶段这些都没必要。"</p>
+</div>
+</div>
+</div>
+
+<div class="problem">
+<div class="problem-header" onclick="toggle(this)">
+<span class="problem-tag tag-remain">架构反思</span>
+<span class="problem-title">RAG 系统的核心矛盾：检索质量 vs 生成质量</span>
+<span class="problem-arrow">▶</span>
+</div>
+<div class="problem-body">
+<div class="field-content">
+<p><strong>检索环节的矛盾：</strong>分块太小 → 检索精准但上下文断裂；分块太大 → 上下文完整但向量稀释。阈值太高 → 漏检；阈值太低 → 噪声。Top-K 太大 → 噪声多、token 消耗大；太小 → 可能漏掉关键信息。</p>
+<hr>
+<p><strong>生成环节的矛盾：</strong>系统提示太长 → 挤占上下文窗口、token 成本高；太短 → LLM 不守规则、容易幻觉。历史轮数太多 → 上下文超限；太少 → 多轮对话理解差。</p>
+<hr>
+<p><strong>面试话术：</strong>"做 RAG 系统最大的收获是理解了检索和生成的矛盾。检索要精准（小块、高阈值、少召回），生成要完整（大块、低阈值、多召回）。两阶段检索（embedding 召回 + cross-encoder 重排）是解决这个矛盾的标准方案。我这个 demo 只有单阶段，是我下一步要优化的。"</p>
+</div>
+</div>
+</div>
+
+</div>
+
+<div class="footer">
+<p>RAG 文档问答系统 | 技术栈：Ollama + FAISS + BGE-small-zh + Streamlit | 2026-09-03</p>
+<p style="margin-top:4px;">点击每个问题卡片展开详情 | 绿色=已修复 | 紫色=待改进</p>
+</div>
+
+<script>
+function toggle(header) {
+  const body = header.nextElementSibling;
+  const arrow = header.querySelector('.problem-arrow');
+  body.classList.toggle('open');
+  arrow.classList.toggle('open');
+}
+</script>
+
+</body>
+</html>
