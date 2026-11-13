@@ -154,7 +154,8 @@ def _process_uploads(uploaded_files):
                 f.write(uf.getvalue())
             # 解析文本
             try:
-                text = document_parser.parse_document(save_path)
+                blocks = document_parser.parse_document_blocks(save_path)
+                text = "\n".join(block["text"] for block in blocks)
             except Exception as e:
                 st.error(f"解析 {uf.name} 失败: {e}")
                 continue
@@ -162,7 +163,9 @@ def _process_uploads(uploaded_files):
                 st.warning(f"{uf.name} 未提取到文本内容")
                 continue
             # 分块
-            chunks = text_splitter.split_text(text, config.CHUNK_SIZE, config.CHUNK_OVERLAP)
+            chunks = text_splitter.split_text(
+                text, config.CHUNK_SIZE, config.CHUNK_OVERLAP, doc_name=uf.name, blocks=blocks
+            )
             if not chunks:
                 st.warning(f"{uf.name} 分块结果为空")
                 continue
@@ -231,6 +234,15 @@ def _render_sources(sources):
     with st.expander("📎 查看引用来源"):
         for i, src in enumerate(sources):
             st.markdown(f"**来源 {i+1}: {src['doc_name']}** (相关度: {src['score']:.2f})")
+            location = []
+            if src.get("section"):
+                location.append(f"章节：{src['section']}")
+            if src.get("subsection"):
+                location.append(f"小节：{src['subsection']}")
+            if src.get("page"):
+                location.append(f"页码：{src['page']}")
+            location.append(f"文本块：{src.get('chunk_index', '-')}")
+            st.caption(" | ".join(location))
             st.text(src["text"])
             st.divider()
 
@@ -285,7 +297,7 @@ def _do_rag(query, search_query=None):
 
     with st.spinner("正在搜索文档..."):
         try:
-            results = rag_engine.search_documents(search_query, doc_ids=doc_ids)
+            results = rag_engine.search_documents(query, refined_query=search_query, doc_ids=doc_ids)
         except Exception as e:
             msg = f"检索出错: {e}"
             st.session_state.messages.append({"role": "assistant", "content": msg, "sources": []})

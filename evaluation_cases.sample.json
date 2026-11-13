@@ -1,0 +1,22 @@
+[
+  {"question":"[替换] 文件编号 A-2025-0318 的预算是多少？","expected_doc":"[替换为真实文件名]","expected_keywords":["A-2025-0318","预算"]},
+  {"question":"[替换] 项目预算的审批流程是什么？","expected_doc":"[替换为真实文件名]","expected_keywords":["预算","审批"]},
+  {"question":"[替换] 合同签署日期是什么时候？","expected_doc":"[替换为真实文件名]","expected_keywords":["合同","日期"]},
+  {"question":"[替换] 付款金额是多少？","expected_doc":"[替换为真实文件名]","expected_keywords":["付款","金额"]},
+  {"question":"[替换] 项目负责人是谁？","expected_doc":"[替换为真实文件名]","expected_keywords":["负责人"]},
+  {"question":"[替换] 该制度适用哪些员工？","expected_doc":"[替换为真实文件名]","expected_keywords":["适用","员工"]},
+  {"question":"[替换] 报销需要哪些材料？","expected_doc":"[替换为真实文件名]","expected_keywords":["报销","材料"]},
+  {"question":"[替换] 差旅住宿标准是多少？","expected_doc":"[替换为真实文件名]","expected_keywords":["住宿","标准"]},
+  {"question":"[替换] 招标编号对应的中标单位是什么？","expected_doc":"[替换为真实文件名]","expected_keywords":["招标","中标"]},
+  {"question":"[替换] 设备型号 X100 的保修期多久？","expected_doc":"[替换为真实文件名]","expected_keywords":["X100","保修"]},
+  {"question":"[替换] SLA 的响应时限是什么？","expected_doc":"[替换为真实文件名]","expected_keywords":["SLA","响应"]},
+  {"question":"[替换] 条款 3.2 的违约责任是什么？","expected_doc":"[替换为真实文件名]","expected_keywords":["3.2","违约"]},
+  {"question":"[替换] 2025年4月的交付物有哪些？","expected_doc":"[替换为真实文件名]","expected_keywords":["2025","交付"]},
+  {"question":"[替换] 申请权限的流程是什么？","expected_doc":"[替换为真实文件名]","expected_keywords":["权限","申请"]},
+  {"question":"[替换] 数据保留期限是几年？","expected_doc":"[替换为真实文件名]","expected_keywords":["保留","期限"]},
+  {"question":"[替换] 培训完成后如何考核？","expected_doc":"[替换为真实文件名]","expected_keywords":["培训","考核"]},
+  {"question":"[替换] 该项目的验收条件有哪些？","expected_doc":"[替换为真实文件名]","expected_keywords":["验收","条件"]},
+  {"question":"[替换] 供应商的付款账户是什么？","expected_doc":"[替换为真实文件名]","expected_keywords":["供应商","账户"]},
+  {"question":"[替换] 上一轮提到的项目，其预算是多少？","refined_query":"[替换为含项目编号的完整问题]","expected_doc":"[替换为真实文件名]","expected_keywords":["预算"]},
+  {"question":"[替换] 文档中是否提到不存在的主题？","expected_doc":"[替换为真实文件名]","expected_keywords":["[替换为不存在词]"]}
+]

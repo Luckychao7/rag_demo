@@ -23,14 +23,39 @@ OLLAMA_MODEL = "qwen2:7b-instruct-q4_K_M"
 # 如果网络不通，可以手动下载模型放到本地目录，然后改成本地路径
 EMBEDDING_MODEL = "BAAI/bge-small-zh-v1.5"
 EMBEDDING_DIM = 512
+EMBEDDING_BATCH_SIZE = 32
+# BGE v1.5 可选查询指令。保留为空可兼容已存在的旧索引；启用后请重新上传文档建库。
+EMBEDDING_QUERY_INSTRUCTION = ""
+EMBEDDING_CACHE_DIR = os.environ.get("EMBEDDING_CACHE_DIR", "")
 
 # ============ 文本分块配置 ============
-CHUNK_SIZE = 1000      # 每块最大字符数
-CHUNK_OVERLAP = 150    # 块间重叠字符数
+CHUNK_SIZE = 1500      # 每块最大字符数
+CHUNK_OVERLAP = 225   # 块间重叠字符数
+CHUNK_MIN_SIZE = 80
 
 # ============ RAG 配置 ============
-TOP_K = 5              # 检索返回的最相关片段数
-SIMILARITY_THRESHOLD = 0.25  # 相似度阈值，低于此值的结果会被过滤
+# 召回阶段刻意不使用相似度阈值，避免正确答案被过早过滤。
+TOP_K = 6
+DENSE_CANDIDATES_PER_DOCUMENT = 20
+BM25_CANDIDATES = 30
+FUSION_CANDIDATES = 50
+RERANK_TOP_K = 6
+RRF_K = 60
+
+# CrossEncoder 为可选的本地精排。首次启用会下载/加载模型；无可用模型时自动退回融合精排。
+ENABLE_RERANKER = False
+RERANKER_MODEL = "BAAI/bge-reranker-base"
+RERANKER_BATCH_SIZE = 16
+RERANKER_CANDIDATES = 30
+
+NEIGHBOR_EXPANSION_HITS = 3
+# 融合降级分数不是余弦分数，因此以进入精排 Top 命中的结果作为扩展资格。
+NEIGHBOR_EXPANSION_THRESHOLD = 0.0
+CONTEXT_MAX_CHARS = 9000
+CONTEXT_MAX_SOURCES = 8
+
+# 旧配置名仅为兼容外部调用；新检索流程不在召回阶段使用它。
+SIMILARITY_THRESHOLD = 0.0
 
 # ============ LLM 上下文窗口 ============
 CONTEXT_WINDOW = 32768  # qwen2:7b 支持的最大上下文 token 数

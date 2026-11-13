@@ -6,7 +6,6 @@ Embedding 模块 - 加载 BGE 中文模型，提供向量化接口
 
 import os
 os.environ.setdefault('HF_ENDPOINT', 'https://hf-mirror.com')
-os.environ.setdefault('HF_HOME', r'D:\question_answer\hf_cache')
 os.environ['TRANSFORMERS_VERBOSITY'] = 'critical'
 os.environ['TRANSFORMERS_NO_ADVISORY_WARNINGS'] = '1'
 import warnings
@@ -14,6 +13,9 @@ warnings.filterwarnings('ignore')
 import logging
 logging.disable(logging.CRITICAL)
 import config
+
+if config.EMBEDDING_CACHE_DIR:
+    os.environ.setdefault("HF_HOME", config.EMBEDDING_CACHE_DIR)
 
 _model = None
 
@@ -34,10 +36,18 @@ def embed_texts(texts: list) -> list:
     """将文本列表转为向量列表"""
     model = get_embedding_model()
     # normalize_embeddings 让余弦相似度可以用内积代替
-    embeddings = model.encode(texts, normalize_embeddings=True, show_progress_bar=False)
+    if not texts:
+        return []
+    embeddings = model.encode(
+        texts,
+        normalize_embeddings=True,
+        batch_size=config.EMBEDDING_BATCH_SIZE,
+        show_progress_bar=False,
+    )
     return embeddings.tolist()
 
 
 def embed_query(text: str) -> list:
     """将单条查询文本转为向量"""
-    return embed_texts([text])[0]
+    query = f"{config.EMBEDDING_QUERY_INSTRUCTION}{text}" if config.EMBEDDING_QUERY_INSTRUCTION else text
+    return embed_texts([query])[0]
